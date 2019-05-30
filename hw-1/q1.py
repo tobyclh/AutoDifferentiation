@@ -7,8 +7,9 @@ from mpl_toolkits.mplot3d import Axes3D
 
 parser = ArgumentParser()
 parser.add_argument('--theta', type=float, default=0, help='angle for the flow in degree')
-parser.add_argument('--time', type=int, default=0, help='compute until t=#, 0 means until it converges')
+parser.add_argument('--time', type=float, default=0, help='compute until t=#, 0 means until it converges')
 parser.add_argument('--delta_t', type=float, default=0.01, help='how many time steps')
+parser.add_argument('--terminated_criteria', type=float, default=1e-4, help='stop the algorithm when')
 parser.add_argument('--pe', type=float, default=1, help='peclet number')
 parser.add_argument('--display_all', action='store_true', help='visualize all the images or just the last one')
 opt = parser.parse_args()
@@ -31,16 +32,17 @@ D = delta_d/opt.pe
 grid = np.zeros([field_size, field_size])
 grid[9:11, 9:11] = 1
 
-def draw(img):
+def draw(img, _max=1):
     fig = plt.figure()
     ax = Axes3D(fig)
-    ax.set_zlim3d(0,1)
-    surf = ax.plot_surface(X, Y, img, cmap=cm.coolwarm,
-                        linewidth=0, antialiased=False, vmax=1, vmin=0)
+    if _max is not None:
+        ax.set_zlim3d(0,_max)
+    ax.plot_surface(X, Y, img, cmap=cm.coolwarm,
+                        linewidth=0, antialiased=False)
     plt.show()
 
 if opt.display_all:
-    draw(img)
+    draw(grid)
 
 def compute_T(T, Tijm1, Tijp1, Tim1j, Tip1j):
     """compute the value of T^{n+1}_{i, j}
@@ -84,21 +86,20 @@ if opt.time != 0:
         return i>=n_steps
 else:
     #compute until it converges
-    past_error = 1e10
+    past_error = [1e10]
     def criteria(_i, img):
         error = np.abs(img-grid).mean()/np.abs(grid).mean()
-        improved_rate = abs((error - past_error)/past_error)
-        past_error = error
-        return improved_rate < 1e-4
+        improved_rate = abs((error - past_error[0])/past_error[0])
+        past_error[0] = error
+        print(f'i {_i} error {error}, improved_rate {improved_rate}')
+        return improved_rate < 1e-5
 done = False
 while not done:
     img = update()
     if opt.display_all:
         draw(img)
     i += 1
-    result = criteria(i, img)
-    result
-    print(i, np.abs(img-grid).mean()/np.abs(grid).mean())
+    done = criteria(i, img)
     grid = img
 
 
