@@ -1,2 +1,1 @@
-
-Copyright (C) 2019 
+RAID 15 can have 3 drives fail while RAID 51 can have 8 without losing data.  However, RAID 51 is slower in term of read and write as it is 
